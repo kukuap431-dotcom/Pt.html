@@ -1,11 +1,2071 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>My TV Game</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D Craft World - Fixed Controls</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            user-select: none;
+        }
+        
+        body {
+            overflow: hidden;
+            background: #000;
+            font-family: 'Arial', sans-serif;
+            color: white;
+        }
+        
+        /* ==================== MAIN MENU ==================== */
+        #mainMenu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0c2461 0%, #1e3799 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.5s;
+        }
+        
+        .menu-container {
+            background: rgba(0, 0, 0, 0.85);
+            padding: 30px;
+            border-radius: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+            min-width: 300px;
+            max-width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .game-title {
+            font-size: 42px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #4CAF50, #2E7D32);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        }
+        
+        .game-subtitle {
+            font-size: 16px;
+            color: #aaa;
+            margin-bottom: 30px;
+        }
+        
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin: 25px 0;
+        }
+        
+        .menu-btn {
+            padding: 12px 25px;
+            background: linear-gradient(145deg, rgba(76, 175, 80, 0.7), rgba(46, 125, 50, 0.5));
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .menu-btn:hover {
+            background: linear-gradient(145deg, rgba(76, 175, 80, 0.9), rgba(46, 125, 50, 0.7));
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .menu-btn:active {
+            transform: translateY(0);
+        }
+        
+        .menu-credits {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #aaa;
+        }
+        
+        /* ==================== GAME CONTAINER ==================== */
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            display: none;
+        }
+        
+        #gameCanvas {
+            display: block;
+            background: #0f3460;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        
+        /* ==================== UI ELEMENTS ==================== */
+        #ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        /* Hotbar */
+        #hotbar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 5px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px;
+            border-radius: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+            pointer-events: auto;
+        }
+        
+        .hotbar-slot {
+            width: 45px;
+            height: 45px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .hotbar-slot.active {
+            border-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.3);
+            transform: scale(1.1);
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+        }
+        
+        .hotbar-slot .block-preview {
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            border: 2px solid rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Player Info */
+        #playerInfo {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            min-width: 180px;
+            backdrop-filter: blur(5px);
+            font-size: 12px;
+        }
+        
+        .info-item {
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .info-label {
+            color: #aaa;
+        }
+        
+        .info-value {
+            color: white;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .health-bar, .mana-bar, .armor-bar {
+            width: 150px;
+            height: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 3px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .health-bar { background: rgba(255, 0, 0, 0.2); }
+        .mana-bar { background: rgba(0, 100, 255, 0.2); }
+        .armor-bar { background: rgba(128, 128, 128, 0.2); }
+        
+        .health-fill, .mana-fill, .armor-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.3s;
+        }
+        
+        .health-fill { background: linear-gradient(90deg, #ff0000, #ff6b6b); }
+        .mana-fill { background: linear-gradient(90deg, #0066ff, #66aaff); }
+        .armor-fill { background: linear-gradient(90deg, #4169E1, #6495ED); }
+        
+        /* Mobile Controls - SIMPLIFIED */
+        #mobileControls {
+            position: absolute;
+            bottom: 100px;
+            left: 15px;
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+        }
+        
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.1s;
+            touch-action: manipulation;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.9);
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        #jumpBtn { background: rgba(52, 152, 219, 0.6); }
+        #breakBtn { background: rgba(231, 76, 60, 0.6); }
+        #placeBtn { background: rgba(46, 204, 113, 0.6); }
+        #attackBtn { background: rgba(155, 89, 182, 0.6); }
+        
+        /* Movement Joystick - NEW */
+        #joystickContainer {
+            position: absolute;
+            bottom: 100px;
+            right: 15px;
+            width: 120px;
+            height: 120px;
+            pointer-events: auto;
+        }
+        
+        #joystickBase {
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            position: relative;
+        }
+        
+        #joystickHandle {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: transform 0.1s;
+        }
+        
+        /* World Info */
+        #worldInfo {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            font-size: 12px;
+            text-align: center;
+            min-width: 140px;
+        }
+        
+        #timeIndicator {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 5px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #FFD700 30%, #FFA500 100%);
+            border: 2px solid white;
+            box-shadow: 0 0 15px #FFD700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 1s;
+        }
+        
+        #timeIndicator.night {
+            background: radial-gradient(circle, #666 30%, #333 100%);
+            box-shadow: 0 0 15px #666;
+        }
+        
+        /* Action Buttons */
+        #actionButtons {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px;
+            border-radius: 10px;
+            pointer-events: auto;
+        }
+        
+        .action-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+        
+        /* Death Screen */
+        #deathScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+        
+        .death-title {
+            font-size: 36px;
+            color: #ff0000;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #ff0000;
+        }
+        
+        /* Crafting Menu */
+        #craftingMenu, #biomeMenu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 15px;
+            border-radius: 12px;
+            border: 3px solid #4CAF50;
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 150;
+            min-width: 250px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        .crafting-item, .biome-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .crafting-item:hover, .biome-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .crafting-preview, .biome-preview {
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Loading Screen */
+        #loadingScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0c2461 0%, #1e3799 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.5s;
+        }
+        
+        .loader {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top: 4px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Control Help */
+        #controlHelp {
+            position: absolute;
+            bottom: 180px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            color: #aaa;
+            max-width: 200px;
+            display: none;
+        }
+        
+        /* Mobile Optimization */
+        @media (max-width: 768px) {
+            .menu-container {
+                padding: 20px;
+            }
+            
+            .game-title {
+                font-size: 32px;
+            }
+            
+            #hotbar {
+                bottom: 10px;
+                padding: 6px;
+                gap: 4px;
+            }
+            
+            .hotbar-slot {
+                width: 40px;
+                height: 40px;
+            }
+            
+            .hotbar-slot .block-preview {
+                width: 25px;
+                height: 25px;
+            }
+            
+            #mobileControls {
+                bottom: 80px;
+                left: 10px;
+            }
+            
+            .control-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 20px;
+            }
+            
+            #joystickContainer {
+                width: 100px;
+                height: 100px;
+                bottom: 80px;
+                right: 10px;
+            }
+            
+            #playerInfo, #worldInfo {
+                padding: 8px;
+                font-size: 10px;
+            }
+            
+            .health-bar, .mana-bar, .armor-bar {
+                width: 120px;
+                height: 10px;
+            }
+        }
+        
+        @media (max-height: 600px) {
+            #hotbar {
+                bottom: 5px;
+            }
+            
+            #mobileControls {
+                bottom: 60px;
+            }
+            
+            #joystickContainer {
+                bottom: 60px;
+            }
+            
+            #controlHelp {
+                bottom: 140px;
+            }
+        }
+    </style>
 </head>
-<body style="background:black;color:white;text-align:center">
-  <h1>It works 🎮</h1>
-  <p>GitHub Pages is working correctly.</p>
+<body>
+    <!-- ==================== MAIN MENU ==================== -->
+    <div id="mainMenu">
+        <div class="menu-container">
+            <div class="game-title">2D CRAFT WORLD</div>
+            <div class="game-subtitle">Vertical Survival • Fixed Controls</div>
+            <div class="menu-buttons">
+                <button class="menu-btn" id="startBtn">START GAME</button>
+                <button class="menu-btn" id="howToBtn">CONTROLS GUIDE</button>
+                <button class="menu-btn" id="biomeGuideBtn">BIOME GUIDE</button>
+                <button class="menu-btn" id="creditsBtn">CREDITS</button>
+            </div>
+            <div class="menu-credits">WASD/Arrows • Click to Break • Right-click to Place</div>
+        </div>
+    </div>
+    
+    <!-- ==================== GAME CONTAINER ==================== -->
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- Loading Screen -->
+        <div id="loadingScreen">
+            <div class="loader"></div>
+            <h1 style="margin-bottom: 10px; font-size: 24px;">2D Craft World</h1>
+            <p>Generating world...</p>
+            <div style="margin-top: 20px; font-size: 11px; color: #aaa;">5 Biomes • Crafting • Survival</div>
+        </div>
+        
+        <!-- UI Overlay -->
+        <div id="ui">
+            <!-- Player Info -->
+            <div id="playerInfo">
+                <div class="info-item">
+                    <span class="info-label">Biome:</span>
+                    <span id="biomeValue" class="info-value">Forest</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Depth:</span>
+                    <span id="depthValue" class="info-value">0m</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Health:</span>
+                    <span id="healthValue" class="info-value">100/100</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Armor:</span>
+                    <span id="armorValue" class="info-value">0/100</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Level:</span>
+                    <span id="levelValue" class="info-value">1</span>
+                </div>
+                
+                <div class="health-bar">
+                    <div id="healthFill" class="health-fill" style="width: 100%"></div>
+                </div>
+                <div class="armor-bar">
+                    <div id="armorFill" class="armor-fill" style="width: 0%"></div>
+                </div>
+                <div class="mana-bar">
+                    <div id="manaFill" class="mana-fill" style="width: 100%"></div>
+                </div>
+            </div>
+            
+            <!-- World Info -->
+            <div id="worldInfo">
+                <div id="timeIndicator">☀️</div>
+                <div>Time: <span id="timeValue">Day</span></div>
+                <div>World: <span id="worldType">Overworld</span></div>
+                <div>Blocks: <span id="blockCount">0</span></div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div id="actionButtons">
+                <div class="action-btn" id="inventoryBtn" title="Inventory (I)">🎒</div>
+                <div class="action-btn" id="craftingBtn" title="Crafting (C)">⚒️</div>
+                <div class="action-btn" id="biomeBtn" title="Biome Info (B)">🌍</div>
+                <div class="action-btn" id="mapBtn" title="Map (M)">🗺️</div>
+            </div>
+            
+            <!-- Control Help -->
+            <div id="controlHelp">
+                <div>WASD/Arrows: Move & Jump</div>
+                <div>Mouse: Break/Place blocks</div>
+                <div>Space: Jump | F: Attack</div>
+                <div>ESC: Pause | 1-9: Select block</div>
+            </div>
+            
+            <!-- Hotbar -->
+            <div id="hotbar">
+                <!-- Blocks will be added by JavaScript -->
+            </div>
+            
+            <!-- Mobile Controls -->
+            <div id="mobileControls">
+                <div class="control-btn" id="jumpBtn" title="Jump (Space)">↑</div>
+                <div class="control-btn" id="breakBtn" title="Break block (Left-click)">⛏️</div>
+                <div class="control-btn" id="placeBtn" title="Place block (Right-click)">⬛</div>
+                <div class="control-btn" id="attackBtn" title="Attack (F)">⚔️</div>
+            </div>
+            
+            <!-- Movement Joystick -->
+            <div id="joystickContainer">
+                <div id="joystickBase">
+                    <div id="joystickHandle"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Death Screen -->
+        <div id="deathScreen">
+            <div class="death-title">YOU DIED!</div>
+            <div style="margin-bottom: 20px; text-align: center; font-size: 14px;">
+                <div id="deathCause">Killed by unknown forces</div>
+                <div style="font-size: 12px; color: #aaa; margin-top: 5px;">Better luck next time!</div>
+            </div>
+            <div class="menu-buttons" style="width: 200px;">
+                <button class="menu-btn" id="respawnBtn" style="padding: 10px 20px; font-size: 14px;">RESPAWN</button>
+                <button class="menu-btn" id="quitBtn" style="padding: 10px 20px; font-size: 14px;">MAIN MENU</button>
+            </div>
+        </div>
+        
+        <!-- Crafting Menu -->
+        <div id="craftingMenu">
+            <div style="text-align: center; margin-bottom: 10px; font-size: 18px; color: #4CAF50;">CRAFTING</div>
+            <div id="craftingItems">
+                <!-- Crafting items will be added by JavaScript -->
+            </div>
+            <button class="menu-btn" id="closeCraftingBtn" style="margin-top: 10px; padding: 8px 16px; font-size: 14px;">CLOSE</button>
+        </div>
+        
+        <!-- Biome Guide Menu -->
+        <div id="biomeMenu">
+            <div style="text-align: center; margin-bottom: 10px; font-size: 18px; color: #4CAF50;">BIOMES</div>
+            <div id="biomeList">
+                <!-- Biome info will be added by JavaScript -->
+            </div>
+            <button class="menu-btn" id="closeBiomeBtn" style="margin-top: 10px; padding: 8px 16px; font-size: 14px;">CLOSE</button>
+        </div>
+    </div>
+
+    <!-- ==================== JAVASCRIPT ==================== -->
+    <script>
+        // ============================================
+        // 2D CRAFT WORLD - FIXED CONTROLS VERSION
+        // ============================================
+        
+        window.addEventListener('load', function() {
+            console.log("Starting 2D Craft World with fixed controls...");
+            
+            // Game Configuration
+            const CONFIG = {
+                BLOCK_SIZE: 35,
+                WORLD_WIDTH: 150,
+                WORLD_HEIGHT: 100,
+                GRAVITY: 0.8,
+                JUMP_FORCE: 14,
+                MOVE_SPEED: 6,
+                RENDER_DISTANCE: 25,
+                DAY_LENGTH: 90000,
+                PLAYER_ATTACK_DAMAGE: 20,
+                ARMOR_PROTECTION: 0.3
+            };
+            
+            // Block Definitions
+            const BLOCKS = [
+                { id: 0, name: 'Air', color: '#0f3460', solid: false, breakable: false },
+                { id: 1, name: 'Grass', color: '#7CFC00', solid: true, breakable: true, tool: 'shovel' },
+                { id: 2, name: 'Dirt', color: '#8B4513', solid: true, breakable: true, tool: 'shovel' },
+                { id: 3, name: 'Stone', color: '#808080', solid: true, breakable: true, tool: 'pickaxe' },
+                { id: 4, name: 'Wood', color: '#8B4513', solid: true, breakable: true, tool: 'axe' },
+                { id: 5, name: 'Leaves', color: '#228B22', solid: true, breakable: true, tool: 'axe' },
+                { id: 6, name: 'Sand', color: '#F4A460', solid: true, breakable: true, tool: 'shovel' },
+                { id: 7, name: 'Snow', color: '#FFFFFF', solid: true, breakable: true, tool: 'shovel' },
+                { id: 8, name: 'Coal', color: '#333333', solid: true, breakable: true, tool: 'pickaxe', value: 5 },
+                { id: 9, name: 'Iron', color: '#b7410e', solid: true, breakable: true, tool: 'pickaxe', value: 10 },
+                { id: 10, name: 'Gold', color: '#FFD700', solid: true, breakable: true, tool: 'pickaxe', value: 20 },
+                { id: 11, name: 'Diamond', color: '#4EE2EC', solid: true, breakable: true, tool: 'pickaxe', value: 50 },
+                { id: 12, name: 'Netherrack', color: '#8B0000', solid: true, breakable: true, tool: 'pickaxe' },
+                { id: 13, name: 'Torch', color: '#FFA500', solid: false, breakable: true, light: true },
+                { id: 14, name: 'Cobblestone', color: '#666666', solid: true, breakable: true, tool: 'pickaxe' }
+            ];
+            
+            // Biome Definitions
+            const BIOMES = [
+                { id: 'forest', name: 'Forest', color: '#228B22', heightRange: [0, 25] },
+                { id: 'desert', name: 'Desert', color: '#F4A460', heightRange: [25, 50] },
+                { id: 'snow', name: 'Snow', color: '#ADD8E6', heightRange: [50, 75] },
+                { id: 'cave', name: 'Caves', color: '#555555', heightRange: [75, 90] },
+                { id: 'nether', name: 'Nether', color: '#8B0000', heightRange: [90, 100] }
+            ];
+            
+            // Crafting Recipes
+            const CRAFTING_RECIPES = [
+                { id: 100, name: 'Wood Pickaxe', result: 'wood_pickaxe', ingredients: {4: 3}, color: '#8B4513' },
+                { id: 101, name: 'Stone Pickaxe', result: 'stone_pickaxe', ingredients: {3: 3, 4: 2}, color: '#808080' },
+                { id: 102, name: 'Iron Pickaxe', result: 'iron_pickaxe', ingredients: {9: 3, 4: 2}, color: '#b7410e' },
+                { id: 103, name: 'Wood Sword', result: 'wood_sword', ingredients: {4: 2, 2: 1}, color: '#8B4513' },
+                { id: 104, name: 'Stone Sword', result: 'stone_sword', ingredients: {3: 2, 4: 1}, color: '#666666' },
+                { id: 105, name: 'Iron Sword', result: 'iron_sword', ingredients: {9: 2, 4: 1}, color: '#b7410e' },
+                { id: 106, name: 'Leather Armor', result: 'leather_armor', ingredients: {2: 8}, color: '#8B4513', armor: 25 },
+                { id: 107, name: 'Iron Armor', result: 'iron_armor', ingredients: {9: 8}, color: '#b7410e', armor: 50 },
+                { id: 108, name: 'Torch', result: 'torch_item', ingredients: {8: 1, 4: 1}, color: '#FFA500' }
+            ];
+            
+            // Game State
+            let canvas, ctx;
+            let world = [];
+            let enemies = [];
+            let projectiles = [];
+            let particles = [];
+            let player = {
+                x: 100,
+                y: 100,
+                width: 30,
+                height: 60,
+                velocityX: 0,
+                velocityY: 0,
+                isGrounded: false,
+                health: 100,
+                maxHealth: 100,
+                mana: 100,
+                maxMana: 100,
+                armor: 0,
+                maxArmor: 100,
+                selectedBlock: 1,
+                inventory: {},
+                level: 1,
+                xp: 0,
+                xpToNextLevel: 100,
+                tools: {},
+                isDead: false,
+                facingRight: true,
+                currentBiome: 'forest',
+                worldDepth: 0
+            };
+            
+            let camera = { x: 0, y: 0, width: 0, height: 0 };
+            let keys = {};
+            let mouse = { x: 0, y: 0, pressed: false };
+            let gameTime = 0;
+            let isDay = true;
+            let blockCount = 0;
+            let gamePaused = false;
+            let gameStarted = false;
+            let joystickActive = false;
+            let joystickX = 0;
+            let joystickY = 0;
+            
+            // Initialize game
+            function init() {
+                console.log("Initializing game...");
+                
+                canvas = document.getElementById('gameCanvas');
+                ctx = canvas.getContext('2d');
+                
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                
+                camera.width = canvas.width;
+                camera.height = canvas.height;
+                
+                setupMenuEvents();
+            }
+            
+            function setupMenuEvents() {
+                document.getElementById('startBtn').addEventListener('click', startGame);
+                
+                document.getElementById('howToBtn').addEventListener('click', () => {
+                    alert("CONTROLS GUIDE:\n\n" +
+                          "KEYBOARD:\n" +
+                          "W/↑: Jump\n" +
+                          "A/←: Move Left\n" +
+                          "D/→: Move Right\n" +
+                          "S/↓: Crouch (when implemented)\n" +
+                          "Space: Jump\n" +
+                          "Left-click: Break block\n" +
+                          "Right-click: Place block\n" +
+                          "1-9: Select block from hotbar\n" +
+                          "F: Attack\n" +
+                          "C: Crafting menu\n" +
+                          "I: Inventory\n" +
+                          "B: Biome info\n" +
+                          "M: Map\n" +
+                          "ESC: Pause\n\n" +
+                          "MOBILE:\n" +
+                          "Joystick: Movement\n" +
+                          "Jump button: Jump\n" +
+                          "Break/Place buttons: Interact\n" +
+                          "Attack button: Attack\n" +
+                          "Action buttons: Menus");
+                });
+                
+                document.getElementById('biomeGuideBtn').addEventListener('click', showBiomeGuide);
+                document.getElementById('creditsBtn').addEventListener('click', showCredits);
+                
+                document.getElementById('respawnBtn').addEventListener('click', respawnPlayer);
+                document.getElementById('quitBtn').addEventListener('click', () => {
+                    document.getElementById('deathScreen').style.display = 'none';
+                    document.getElementById('gameContainer').style.display = 'none';
+                    document.getElementById('mainMenu').style.display = 'flex';
+                    gameStarted = false;
+                });
+                
+                document.getElementById('craftingBtn').addEventListener('click', openCraftingMenu);
+                document.getElementById('closeCraftingBtn').addEventListener('click', () => {
+                    document.getElementById('craftingMenu').style.display = 'none';
+                });
+                
+                document.getElementById('biomeBtn').addEventListener('click', openBiomeMenu);
+                document.getElementById('closeBiomeBtn').addEventListener('click', () => {
+                    document.getElementById('biomeMenu').style.display = 'none';
+                });
+                
+                document.getElementById('inventoryBtn').addEventListener('click', showInventory);
+                document.getElementById('mapBtn').addEventListener('click', showMap);
+                
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && gameStarted) {
+                        togglePause();
+                    }
+                });
+            }
+            
+            function startGame() {
+                console.log("Starting game...");
+                document.getElementById('mainMenu').style.display = 'none';
+                document.getElementById('gameContainer').style.display = 'block';
+                
+                generateWorld();
+                setupUI();
+                setupControls();
+                
+                setTimeout(() => {
+                    document.getElementById('loadingScreen').style.opacity = '0';
+                    setTimeout(() => {
+                        document.getElementById('loadingScreen').style.display = 'none';
+                        gameStarted = true;
+                        requestAnimationFrame(gameLoop);
+                    }, 500);
+                }, 1500);
+            }
+            
+            function generateWorld() {
+                console.log("Generating world...");
+                
+                world = [];
+                for (let y = 0; y < CONFIG.WORLD_HEIGHT; y++) {
+                    world[y] = [];
+                    for (let x = 0; x < CONFIG.WORLD_WIDTH; x++) {
+                        world[y][x] = 0;
+                    }
+                }
+                
+                // Generate terrain
+                const groundHeight = 35;
+                for (let x = 0; x < CONFIG.WORLD_WIDTH; x++) {
+                    const heightVariation = Math.sin(x * 0.08) * 5 + Math.cos(x * 0.04) * 3;
+                    const currentHeight = groundHeight + Math.floor(heightVariation);
+                    
+                    // Create ground layers
+                    for (let y = CONFIG.WORLD_HEIGHT - 1; y >= currentHeight; y--) {
+                        if (y === currentHeight) {
+                            // Surface layer based on biome
+                            if (x < 50) world[y][x] = 1; // Grass (Forest)
+                            else if (x < 100) world[y][x] = 6; // Sand (Desert)
+                            else world[y][x] = 7; // Snow (Snow)
+                        } else if (y < currentHeight + 4) {
+                            world[y][x] = 2; // Dirt
+                        } else if (y < currentHeight + 8) {
+                            world[y][x] = 3; // Stone
+                        } else {
+                            // Deep stone with ores
+                            const depth = y - (currentHeight + 8);
+                            const oreChance = Math.min(0.1 + depth * 0.01, 0.3);
+                            
+                            if (Math.random() < 0.95) {
+                                world[y][x] = 3; // Stone
+                            } else {
+                                // Add ores
+                                if (depth > 15 && Math.random() < 0.02) {
+                                    world[y][x] = 11; // Diamond
+                                } else if (depth > 10 && Math.random() < 0.04) {
+                                    world[y][x] = 10; // Gold
+                                } else if (depth > 8 && Math.random() < 0.06) {
+                                    world[y][x] = 9; // Iron
+                                } else if (Math.random() < 0.1) {
+                                    world[y][x] = 8; // Coal
+                                } else {
+                                    world[y][x] = 3; // Stone
+                                }
+                            }
+                        }
+                        blockCount++;
+                    }
+                    
+                    // Add trees in forest biome
+                    if (x % 10 === 0 && x > 20 && x < 50) {
+                        createTree(x, currentHeight - 1);
+                    }
+                    
+                    // Add cactus in desert
+                    if (x % 12 === 0 && x > 50 && x < 100) {
+                        world[currentHeight - 1][x] = 6;
+                    }
+                }
+                
+                // Add nether area
+                for (let y = CONFIG.WORLD_HEIGHT - 10; y < CONFIG.WORLD_HEIGHT; y++) {
+                    for (let x = 0; x < CONFIG.WORLD_WIDTH; x++) {
+                        if (y >= CONFIG.WORLD_HEIGHT - 5) {
+                            world[y][x] = 12; // Netherrack
+                            blockCount++;
+                        }
+                    }
+                }
+                
+                console.log("World generated with", blockCount, "blocks");
+                document.getElementById('blockCount').textContent = blockCount;
+            }
+            
+            function createTree(x, y) {
+                // Trunk
+                const trunkHeight = 4 + Math.floor(Math.random() * 3);
+                for (let i = 0; i < trunkHeight; i++) {
+                    const treeY = y - i;
+                    if (treeY >= 0) {
+                        world[treeY][x] = 4;
+                        blockCount++;
+                    }
+                }
+                
+                // Leaves
+                const leavesStart = y - trunkHeight;
+                for (let ly = 0; ly < 4; ly++) {
+                    for (let lx = -3; lx <= 3; lx++) {
+                        const leafY = leavesStart - ly;
+                        const leafX = x + lx;
+                        
+                        if (Math.abs(lx) === 3 && ly > 2) continue;
+                        if (Math.abs(lx) === 2 && ly > 3) continue;
+                        
+                        if (leafY >= 0 && leafX >= 0 && leafX < CONFIG.WORLD_WIDTH) {
+                            if (world[leafY][leafX] === 0 && Math.random() < 0.8) {
+                                world[leafY][leafX] = 5;
+                                blockCount++;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            function setupUI() {
+                const hotbar = document.getElementById('hotbar');
+                hotbar.innerHTML = '';
+                
+                const displayBlocks = [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13];
+                
+                displayBlocks.forEach((blockId, index) => {
+                    const block = BLOCKS[blockId];
+                    if (!block) return;
+                    
+                    const slot = document.createElement('div');
+                    slot.className = 'hotbar-slot';
+                    slot.dataset.block = blockId;
+                    slot.title = block.name;
+                    
+                    const preview = document.createElement('div');
+                    preview.className = 'block-preview';
+                    preview.style.backgroundColor = block.color;
+                    
+                    const number = document.createElement('div');
+                    number.style.position = 'absolute';
+                    number.style.top = '2px';
+                    number.style.left = '2px';
+                    number.style.fontSize = '10px';
+                    number.style.color = 'white';
+                    number.textContent = index + 1;
+                    
+                    slot.appendChild(preview);
+                    slot.appendChild(number);
+                    
+                    slot.addEventListener('click', () => {
+                        selectBlock(blockId);
+                    });
+                    
+                    hotbar.appendChild(slot);
+                });
+                
+                selectBlock(1);
+                setupBiomeGuide();
+                setupCraftingMenu();
+            }
+            
+            function setupBiomeGuide() {
+                const biomeList = document.getElementById('biomeList');
+                biomeList.innerHTML = '';
+                
+                BIOMES.forEach(biome => {
+                    const item = document.createElement('div');
+                    item.className = 'biome-item';
+                    
+                    const preview = document.createElement('div');
+                    preview.className = 'biome-preview';
+                    preview.style.backgroundColor = biome.color;
+                    
+                    const info = document.createElement('div');
+                    info.style.flex = '1';
+                    
+                    const name = document.createElement('div');
+                    name.textContent = biome.name;
+                    name.style.fontWeight = 'bold';
+                    name.style.color = biome.color;
+                    
+                    const details = document.createElement('div');
+                    details.style.fontSize = '10px';
+                    details.style.color = '#aaa';
+                    details.textContent = `X: ${biome.heightRange[0]}-${biome.heightRange[1]}`;
+                    
+                    info.appendChild(name);
+                    info.appendChild(details);
+                    
+                    item.appendChild(preview);
+                    item.appendChild(info);
+                    biomeList.appendChild(item);
+                });
+            }
+            
+            function setupCraftingMenu() {
+                const craftingItems = document.getElementById('craftingItems');
+                craftingItems.innerHTML = '';
+                
+                CRAFTING_RECIPES.forEach(recipe => {
+                    const item = document.createElement('div');
+                    item.className = 'crafting-item';
+                    item.dataset.recipe = recipe.id;
+                    
+                    const preview = document.createElement('div');
+                    preview.className = 'crafting-preview';
+                    preview.style.backgroundColor = recipe.color;
+                    
+                    const info = document.createElement('div');
+                    info.style.flex = '1';
+                    
+                    const name = document.createElement('div');
+                    name.textContent = recipe.name;
+                    name.style.fontWeight = 'bold';
+                    
+                    const ingredients = document.createElement('div');
+                    ingredients.style.fontSize = '10px';
+                    ingredients.style.color = '#aaa';
+                    
+                    let ingredientsText = 'Requires: ';
+                    Object.entries(recipe.ingredients).forEach(([blockId, amount]) => {
+                        ingredientsText += `${amount} ${BLOCKS[blockId].name}, `;
+                    });
+                    ingredientsText = ingredientsText.slice(0, -2);
+                    ingredients.textContent = ingredientsText;
+                    
+                    info.appendChild(name);
+                    info.appendChild(ingredients);
+                    
+                    item.appendChild(preview);
+                    item.appendChild(info);
+                    
+                    item.addEventListener('click', () => {
+                        craftItem(recipe);
+                    });
+                    
+                    craftingItems.appendChild(item);
+                });
+            }
+            
+            function craftItem(recipe) {
+                let canCraft = true;
+                Object.entries(recipe.ingredients).forEach(([blockId, amount]) => {
+                    if (!player.inventory[blockId] || player.inventory[blockId] < amount) {
+                        canCraft = false;
+                    }
+                });
+                
+                if (canCraft) {
+                    Object.entries(recipe.ingredients).forEach(([blockId, amount]) => {
+                        player.inventory[blockId] -= amount;
+                        if (player.inventory[blockId] === 0) {
+                            delete player.inventory[blockId];
+                        }
+                    });
+                    
+                    if (recipe.armor) {
+                        player.armor = Math.min(player.maxArmor, player.armor + recipe.armor);
+                        updateArmorDisplay();
+                    } else {
+                        player.tools[recipe.result] = true;
+                    }
+                    
+                    alert(`Crafted ${recipe.name}!`);
+                } else {
+                    alert("Not enough resources!");
+                }
+            }
+            
+            function updateArmorDisplay() {
+                const armorPercent = (player.armor / player.maxArmor) * 100;
+                document.getElementById('armorFill').style.width = armorPercent + '%';
+                document.getElementById('armorValue').textContent = `${Math.floor(player.armor)}/${player.maxArmor}`;
+            }
+            
+            function openCraftingMenu() {
+                document.getElementById('craftingMenu').style.display = 'flex';
+            }
+            
+            function openBiomeMenu() {
+                document.getElementById('biomeMenu').style.display = 'flex';
+            }
+            
+            function showBiomeGuide() {
+                let guideText = "BIOME GUIDE:\n\n";
+                BIOMES.forEach(biome => {
+                    guideText += `${biome.name} (X: ${biome.heightRange[0]}-${biome.heightRange[1]})\n`;
+                });
+                alert(guideText);
+            }
+            
+            function showCredits() {
+                alert("2D CRAFT WORLD\n\nCreated with HTML5 Canvas\nFixed Controls Version\nEnjoy exploring!");
+            }
+            
+            function showInventory() {
+                let inventoryText = "INVENTORY:\n\n";
+                if (Object.keys(player.inventory).length === 0) {
+                    inventoryText += "Empty! Break blocks to collect resources.";
+                } else {
+                    Object.entries(player.inventory).forEach(([blockId, count]) => {
+                        const block = BLOCKS[blockId];
+                        if (block) {
+                            inventoryText += `${block.name}: ${count}\n`;
+                        }
+                    });
+                }
+                alert(inventoryText);
+            }
+            
+            function showMap() {
+                const x = Math.floor(player.x / CONFIG.BLOCK_SIZE);
+                let biome = "Unknown";
+                for (const b of BIOMES) {
+                    if (x >= b.heightRange[0] && x < b.heightRange[1]) {
+                        biome = b.name;
+                        break;
+                    }
+                }
+                alert(`WORLD MAP:\n\nPosition: X=${x}\nBiome: ${biome}`);
+            }
+            
+            function selectBlock(blockId) {
+                player.selectedBlock = blockId;
+                
+                document.querySelectorAll('.hotbar-slot').forEach(slot => {
+                    slot.classList.toggle('active', parseInt(slot.dataset.block) === blockId);
+                });
+            }
+            
+            function setupControls() {
+                // KEYBOARD CONTROLS - FIXED
+                document.addEventListener('keydown', (e) => {
+                    if (gamePaused || player.isDead) return;
+                    
+                    const key = e.key.toLowerCase();
+                    
+                    // Movement
+                    if (key === 'a' || key === 'arrowleft') {
+                        keys.left = true;
+                    }
+                    if (key === 'd' || key === 'arrowright') {
+                        keys.right = true;
+                    }
+                    
+                    // Jump (Space or W/Up)
+                    if (key === ' ' || key === 'spacebar' || key === 'w' || key === 'arrowup') {
+                        if (player.isGrounded) {
+                            player.velocityY = -CONFIG.JUMP_FORCE;
+                        }
+                        keys.up = true;
+                    }
+                    
+                    // Number keys for block selection
+                    if (key >= '1' && key <= '9') {
+                        const index = parseInt(key) - 1;
+                        const displayBlocks = [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13];
+                        if (index < displayBlocks.length) {
+                            selectBlock(displayBlocks[index]);
+                        }
+                    }
+                    
+                    // Quick actions
+                    if (key === 'f') {
+                        attack();
+                    }
+                    if (key === 'c') {
+                        openCraftingMenu();
+                    }
+                    if (key === 'i') {
+                        showInventory();
+                    }
+                    if (key === 'b') {
+                        openBiomeMenu();
+                    }
+                    if (key === 'm') {
+                        showMap();
+                    }
+                });
+                
+                document.addEventListener('keyup', (e) => {
+                    const key = e.key.toLowerCase();
+                    
+                    if (key === 'a' || key === 'arrowleft') {
+                        keys.left = false;
+                    }
+                    if (key === 'd' || key === 'arrowright') {
+                        keys.right = false;
+                    }
+                    if (key === 'w' || key === 'arrowup') {
+                        keys.up = false;
+                    }
+                });
+                
+                // MOUSE CONTROLS
+                canvas.addEventListener('mousedown', (e) => {
+                    if (gamePaused || player.isDead) return;
+                    
+                    mouse.pressed = true;
+                    mouse.x = e.clientX;
+                    mouse.y = e.clientY;
+                    
+                    if (e.button === 0) { // Left click
+                        breakBlockAtCursor();
+                    }
+                });
+                
+                canvas.addEventListener('mouseup', () => {
+                    mouse.pressed = false;
+                });
+                
+                canvas.addEventListener('mousemove', (e) => {
+                    mouse.x = e.clientX;
+                    mouse.y = e.clientY;
+                    
+                    const worldX = mouse.x + camera.x;
+                    player.facingRight = worldX > player.x + player.width/2;
+                });
+                
+                canvas.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    if (gamePaused || player.isDead) return;
+                    placeBlockAtCursor();
+                });
+                
+                // TOUCH CONTROLS - FIXED
+                let touchStartX = 0;
+                let touchStartY = 0;
+                
+                canvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    if (gamePaused || player.isDead) return;
+                    
+                    const touch = e.touches[0];
+                    mouse.x = touch.clientX;
+                    mouse.y = touch.clientY;
+                    mouse.pressed = true;
+                    
+                    touchStartX = touch.clientX;
+                    touchStartY = touch.clientY;
+                    
+                    // Tap to break (short touch)
+                    setTimeout(() => {
+                        if (mouse.pressed) {
+                            breakBlockAtCursor();
+                        }
+                    }, 100);
+                }, { passive: false });
+                
+                canvas.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    mouse.pressed = false;
+                    
+                    // Check for long press (place block)
+                    const touch = e.changedTouches[0];
+                    const touchEndX = touch.clientX;
+                    const touchEndY = touch.clientY;
+                    
+                    // If touch didn't move much, it's a place action
+                    const dx = touchEndX - touchStartX;
+                    const dy = touchEndY - touchStartY;
+                    const distance = Math.sqrt(dx*dx + dy*dy);
+                    
+                    if (distance < 10) {
+                        placeBlockAtCursor();
+                    }
+                }, { passive: false });
+                
+                canvas.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    mouse.x = touch.clientX;
+                    mouse.y = touch.clientY;
+                }, { passive: false });
+                
+                // MOBILE CONTROL BUTTONS
+                document.getElementById('jumpBtn').addEventListener('click', () => {
+                    if (player.isGrounded && !gamePaused && !player.isDead) {
+                        player.velocityY = -CONFIG.JUMP_FORCE;
+                    }
+                });
+                
+                document.getElementById('breakBtn').addEventListener('click', breakBlockAtCursor);
+                document.getElementById('placeBtn').addEventListener('click', placeBlockAtCursor);
+                document.getElementById('attackBtn').addEventListener('click', attack);
+                
+                // JOYSTICK CONTROLS
+                const joystickBase = document.getElementById('joystickBase');
+                const joystickHandle = document.getElementById('joystickHandle');
+                
+                function updateJoystick(clientX, clientY) {
+                    const rect = joystickBase.getBoundingClientRect();
+                    const centerX = rect.left + rect.width / 2;
+                    const centerY = rect.top + rect.height / 2;
+                    
+                    let dx = clientX - centerX;
+                    let dy = clientY - centerY;
+                    
+                    // Limit to joystick radius
+                    const maxDist = rect.width / 2;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    
+                    if (dist > maxDist) {
+                        dx = (dx / dist) * maxDist;
+                        dy = (dy / dist) * maxDist;
+                    }
+                    
+                    // Update handle position
+                    joystickHandle.style.transform = `translate(${dx}px, ${dy}px)`;
+                    
+                    // Update movement keys based on joystick position
+                    const deadZone = 15; // Minimum movement to register
+                    
+                    if (dx < -deadZone) {
+                        keys.left = true;
+                        keys.right = false;
+                    } else if (dx > deadZone) {
+                        keys.right = true;
+                        keys.left = false;
+                    } else {
+                        keys.left = false;
+                        keys.right = false;
+                    }
+                    
+                    // Jump if joystick is pushed up
+                    if (dy < -deadZone * 2 && player.isGrounded) {
+                        player.velocityY = -CONFIG.JUMP_FORCE * 0.8;
+                    }
+                    
+                    joystickX = dx / maxDist;
+                    joystickY = dy / maxDist;
+                }
+                
+                joystickBase.addEventListener('mousedown', (e) => {
+                    joystickActive = true;
+                    updateJoystick(e.clientX, e.clientY);
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    if (joystickActive) {
+                        updateJoystick(e.clientX, e.clientY);
+                    }
+                });
+                
+                document.addEventListener('mouseup', () => {
+                    if (joystickActive) {
+                        joystickActive = false;
+                        keys.left = false;
+                        keys.right = false;
+                        joystickHandle.style.transform = 'translate(-50%, -50%)';
+                        joystickX = 0;
+                        joystickY = 0;
+                    }
+                });
+                
+                // Touch events for joystick
+                joystickBase.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    joystickActive = true;
+                    updateJoystick(e.touches[0].clientX, e.touches[0].clientY);
+                }, { passive: false });
+                
+                document.addEventListener('touchmove', (e) => {
+                    if (joystickActive) {
+                        e.preventDefault();
+                        updateJoystick(e.touches[0].clientX, e.touches[0].clientY);
+                    }
+                }, { passive: false });
+                
+                document.addEventListener('touchend', () => {
+                    if (joystickActive) {
+                        joystickActive = false;
+                        keys.left = false;
+                        keys.right = false;
+                        joystickHandle.style.transform = 'translate(-50%, -50%)';
+                        joystickX = 0;
+                        joystickY = 0;
+                    }
+                });
+                
+                // Show control help on first play
+                setTimeout(() => {
+                    if (gameStarted) {
+                        document.getElementById('controlHelp').style.display = 'block';
+                        setTimeout(() => {
+                            document.getElementById('controlHelp').style.display = 'none';
+                        }, 5000);
+                    }
+                }, 2000);
+                
+                // Window resize
+                window.addEventListener('resize', () => {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                    camera.width = canvas.width;
+                    camera.height = canvas.height;
+                });
+            }
+            
+            function breakBlockAtCursor() {
+                if (gamePaused || player.isDead) return;
+                
+                const worldX = Math.floor((mouse.x + camera.x) / CONFIG.BLOCK_SIZE);
+                const worldY = Math.floor((mouse.y + camera.y) / CONFIG.BLOCK_SIZE);
+                
+                if (worldX >= 0 && worldX < CONFIG.WORLD_WIDTH && 
+                    worldY >= 0 && worldY < CONFIG.WORLD_HEIGHT) {
+                    
+                    const blockId = world[worldY][worldX];
+                    const block = BLOCKS[blockId];
+                    
+                    if (block.breakable) {
+                        // Break the block
+                        world[worldY][worldX] = 0;
+                        blockCount--;
+                        
+                        // Add to inventory
+                        if (!player.inventory[blockId]) {
+                            player.inventory[blockId] = 0;
+                        }
+                        player.inventory[blockId]++;
+                        
+                        // Add XP for mining ores
+                        if (block.value) {
+                            addXP(block.value);
+                        }
+                        
+                        // Create particles
+                        createParticles(
+                            worldX * CONFIG.BLOCK_SIZE + CONFIG.BLOCK_SIZE/2,
+                            worldY * CONFIG.BLOCK_SIZE + CONFIG.BLOCK_SIZE/2,
+                            block.color, 5
+                        );
+                        
+                        // Update block count
+                        document.getElementById('blockCount').textContent = blockCount;
+                        
+                        playSound('break');
+                    }
+                }
+            }
+            
+            function placeBlockAtCursor() {
+                if (gamePaused || player.isDead) return;
+                
+                const worldX = Math.floor((mouse.x + camera.x) / CONFIG.BLOCK_SIZE);
+                const worldY = Math.floor((mouse.y + camera.y) / CONFIG.BLOCK_SIZE);
+                
+                if (worldX >= 0 && worldX < CONFIG.WORLD_WIDTH && 
+                    worldY >= 0 && worldY < CONFIG.WORLD_HEIGHT) {
+                    
+                    if (world[worldY][worldX] === 0) {
+                        const selectedBlock = BLOCKS[player.selectedBlock];
+                        
+                        // Check if we have this block in inventory
+                        if (player.inventory[player.selectedBlock] > 0) {
+                            // Don't place block inside player
+                            const playerLeft = Math.floor(player.x / CONFIG.BLOCK_SIZE);
+                            const playerRight = Math.floor((player.x + player.width) / CONFIG.BLOCK_SIZE);
+                            const playerTop = Math.floor(player.y / CONFIG.BLOCK_SIZE);
+                            const playerBottom = Math.floor((player.y + player.height) / CONFIG.BLOCK_SIZE);
+                            
+                            if (worldX >= playerLeft && worldX <= playerRight && 
+                                worldY >= playerTop && worldY <= playerBottom) {
+                                return;
+                            }
+                            
+                            // Place the block
+                            world[worldY][worldX] = player.selectedBlock;
+                            blockCount++;
+                            
+                            // Remove from inventory
+                            player.inventory[player.selectedBlock]--;
+                            
+                            // Update block count
+                            document.getElementById('blockCount').textContent = blockCount;
+                            
+                            playSound('place');
+                        }
+                    }
+                }
+            }
+            
+            function attack() {
+                if (player.mana >= 10) {
+                    player.mana -= 10;
+                    
+                    // Create attack projectile
+                    const projectile = {
+                        x: player.facingRight ? player.x + player.width : player.x,
+                        y: player.y + player.height/2,
+                        width: 20,
+                        height: 10,
+                        velocityX: player.facingRight ? 10 : -10,
+                        damage: CONFIG.PLAYER_ATTACK_DAMAGE + player.level * 5,
+                        color: '#FFD700'
+                    };
+                    
+                    projectiles.push(projectile);
+                    playSound('attack');
+                }
+            }
+            
+            function createParticles(x, y, color, count) {
+                for (let i = 0; i < count; i++) {
+                    particles.push({
+                        x: x,
+                        y: y,
+                        velocityX: (Math.random() - 0.5) * 8,
+                        velocityY: (Math.random() - 0.5) * 8,
+                        life: 1,
+                        color: color,
+                        size: 2 + Math.random() * 4
+                    });
+                }
+            }
+            
+            function addXP(amount) {
+                player.xp += amount;
+                
+                // Level up
+                while (player.xp >= player.xpToNextLevel) {
+                    player.xp -= player.xpToNextLevel;
+                    player.level++;
+                    player.maxHealth += 20;
+                    player.health = player.maxHealth;
+                    player.xpToNextLevel = Math.floor(player.xpToNextLevel * 1.5);
+                    
+                    // Level up effect
+                    createParticles(player.x + player.width/2, player.y, '#4CAF50', 20);
+                    
+                    // Update UI
+                    document.getElementById('levelValue').textContent = player.level;
+                }
+                
+                // Update health display
+                document.getElementById('healthValue').textContent = `${Math.round(player.health)}/${player.maxHealth}`;
+            }
+            
+            function updatePlayer(deltaTime) {
+                if (player.isDead || gamePaused) return;
+                
+                // Regenerate health and mana
+                if (player.health < player.maxHealth) {
+                    player.health = Math.min(player.maxHealth, player.health + 0.1);
+                }
+                if (player.mana < player.maxMana) {
+                    player.mana = Math.min(player.maxMana, player.mana + 0.2);
+                }
+                
+                // Apply gravity
+                player.velocityY += CONFIG.GRAVITY;
+                
+                // Handle movement - SIMPLIFIED
+                // Use joystick if active, otherwise use keyboard
+                if (joystickActive) {
+                    player.velocityX = joystickX * CONFIG.MOVE_SPEED;
+                } else {
+                    // Keyboard movement
+                    if (keys.left) {
+                        player.velocityX = -CONFIG.MOVE_SPEED;
+                        player.facingRight = false;
+                    } else if (keys.right) {
+                        player.velocityX = CONFIG.MOVE_SPEED;
+                        player.facingRight = true;
+                    } else {
+                        player.velocityX *= 0.8; // Friction
+                    }
+                }
+                
+                // Update position
+                player.x += player.velocityX;
+                player.y += player.velocityY;
+                
+                // Check collisions
+                checkCollisions();
+                
+                // Keep player in world bounds
+                player.x = Math.max(0, Math.min(player.x, CONFIG.WORLD_WIDTH * CONFIG.BLOCK_SIZE - player.width));
+                player.y = Math.max(0, Math.min(player.y, CONFIG.WORLD_HEIGHT * CONFIG.BLOCK_SIZE - player.height));
+                
+                // Update camera to follow player
+                camera.x = player.x - camera.width / 2 + player.width / 2;
+                camera.y = player.y - camera.height / 2 + player.height / 2;
+                
+                // Clamp camera to world bounds
+                camera.x = Math.max(0, Math.min(camera.x, CONFIG.WORLD_WIDTH * CONFIG.BLOCK_SIZE - camera.width));
+                camera.y = Math.max(0, Math.min(camera.y, CONFIG.WORLD_HEIGHT * CONFIG.BLOCK_SIZE - camera.height));
+                
+                // Update UI
+                const xPos = Math.floor(player.x / CONFIG.BLOCK_SIZE);
+                document.getElementById('depthValue').textContent = xPos + 'm';
+                
+                // Update biome based on X position
+                for (const biome of BIOMES) {
+                    if (xPos >= biome.heightRange[0] && xPos < biome.heightRange[1]) {
+                        if (player.currentBiome !== biome.id) {
+                            player.currentBiome = biome.id;
+                            document.getElementById('biomeValue').textContent = biome.name;
+                        }
+                        break;
+                    }
+                }
+                
+                // Update health and mana bars
+                const healthPercent = (player.health / player.maxHealth) * 100;
+                const manaPercent = (player.mana / player.maxMana) * 100;
+                document.getElementById('healthFill').style.width = healthPercent + '%';
+                document.getElementById('manaFill').style.width = manaPercent + '%';
+            }
+            
+            function checkCollisions() {
+                player.isGrounded = false;
+                
+                // Convert player position to grid
+                const left = Math.floor(player.x / CONFIG.BLOCK_SIZE);
+                const right = Math.floor((player.x + player.width) / CONFIG.BLOCK_SIZE);
+                const top = Math.floor(player.y / CONFIG.BLOCK_SIZE);
+                const bottom = Math.floor((player.y + player.height) / CONFIG.BLOCK_SIZE);
+                
+                // Check collision with solid blocks
+                for (let y = top; y <= bottom; y++) {
+                    for (let x = left; x <= right; x++) {
+                        if (y >= 0 && y < CONFIG.WORLD_HEIGHT && x >= 0 && x < CONFIG.WORLD_WIDTH) {
+                            const blockId = world[y][x];
+                            const block = BLOCKS[blockId];
+                            
+                            if (block.solid) {
+                                // Simple AABB collision resolution
+                                const blockLeft = x * CONFIG.BLOCK_SIZE;
+                                const blockRight = (x + 1) * CONFIG.BLOCK_SIZE;
+                                const blockTop = y * CONFIG.BLOCK_SIZE;
+                                const blockBottom = (y + 1) * CONFIG.BLOCK_SIZE;
+                                
+                                const playerBottom = player.y + player.height;
+                                const playerRight = player.x + player.width;
+                                
+                                const overlapTop = playerBottom - blockTop;
+                                const overlapBottom = blockBottom - player.y;
+                                const overlapLeft = playerRight - blockLeft;
+                                const overlapRight = blockRight - player.x;
+                                
+                                // Find smallest overlap
+                                const minOverlap = Math.min(overlapTop, overlapBottom, overlapLeft, overlapRight);
+                                
+                                if (minOverlap === overlapTop && player.velocityY > 0) {
+                                    // Hit from top (landing on block)
+                                    player.y = blockTop - player.height;
+                                    player.velocityY = 0;
+                                    player.isGrounded = true;
+                                } else if (minOverlap === overlapBottom && player.velocityY < 0) {
+                                    // Hit from bottom
+                                    player.y = blockBottom;
+                                    player.velocityY = 0;
+                                } else if (minOverlap === overlapLeft && player.velocityX > 0) {
+                                    // Hit from left
+                                    player.x = blockLeft - player.width;
+                                    player.velocityX = 0;
+                                } else if (minOverlap === overlapRight && player.velocityX < 0) {
+                                    // Hit from right
+                                    player.x = blockRight;
+                                    player.velocityX = 0;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            function updateGameTime(deltaTime) {
+                gameTime += deltaTime;
+                
+                // Day/night cycle
+                const cycleTime = gameTime % CONFIG.DAY_LENGTH;
+                isDay = cycleTime < CONFIG.DAY_LENGTH / 2;
+                
+                // Update time display
+                const minutes = Math.floor(cycleTime / 60000);
+                const seconds = Math.floor((cycleTime % 60000) / 1000);
+                document.getElementById('timeValue').textContent = 
+                    isDay ? `Day ${minutes}:${seconds.toString().padStart(2, '0')}` : 
+                            `Night ${minutes}:${seconds.toString().padStart(2, '0')}`;
+                
+                // Update time indicator
+                const timeIndicator = document.getElementById('timeIndicator');
+                if (isDay) {
+                    timeIndicator.textContent = '☀️';
+                    timeIndicator.classList.remove('night');
+                } else {
+                    timeIndicator.textContent = '🌙';
+                    timeIndicator.classList.add('night');
+                }
+            }
+            
+            function updateProjectiles(deltaTime) {
+                for (let i = projectiles.length - 1; i >= 0; i--) {
+                    const projectile = projectiles[i];
+                    
+                    // Move projectile
+                    projectile.x += projectile.velocityX;
+                    
+                    // Remove projectiles that go too far
+                    if (projectile.x < camera.x - 100 || 
+                        projectile.x > camera.x + camera.width + 100) {
+                        projectiles.splice(i, 1);
+                    }
+                }
+            }
+            
+            function updateParticles(deltaTime) {
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const particle = particles[i];
+                    
+                    particle.x += particle.velocityX;
+                    particle.y += particle.velocityY;
+                    particle.life -= 0.02;
+                    
+                    // Gravity
+                    particle.velocityY += 0.2;
+                    
+                    // Friction
+                    particle.velocityX *= 0.98;
+                    particle.velocityY *= 0.98;
+                    
+                    if (particle.life <= 0) {
+                        particles.splice(i, 1);
+                    }
+                }
+            }
+            
+            function render() {
+                // Clear canvas with day/night color
+                if (isDay) {
+                    ctx.fillStyle = '#87CEEB';
+                } else {
+                    ctx.fillStyle = '#0a1a3a';
+                    
+                    // Add stars at night
+                    ctx.fillStyle = 'white';
+                    for (let i = 0; i < 50; i++) {
+                        const starX = (Math.sin(i * 7) * 1000 + gameTime * 0.1) % canvas.width;
+                        const starY = (i * 13) % canvas.height;
+                        const size = Math.sin(gameTime * 0.001 + i) * 1 + 1;
+                        ctx.fillRect(starX, starY, size, size);
+                    }
+                    
+                    ctx.fillStyle = '#0a1a3a';
+                }
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Calculate visible area
+                const startX = Math.floor(camera.x / CONFIG.BLOCK_SIZE);
+                const startY = Math.floor(camera.y / CONFIG.BLOCK_SIZE);
+                const endX = Math.ceil((camera.x + camera.width) / CONFIG.BLOCK_SIZE);
+                const endY = Math.ceil((camera.y + camera.height) / CONFIG.BLOCK_SIZE);
+                
+                // Render blocks
+                for (let y = startY; y < endY; y++) {
+                    for (let x = startX; x < endX; x++) {
+                        if (y >= 0 && y < CONFIG.WORLD_HEIGHT && x >= 0 && x < CONFIG.WORLD_WIDTH) {
+                            const blockId = world[y][x];
+                            const block = BLOCKS[blockId];
+                            
+                            if (blockId !== 0) {
+                                const screenX = x * CONFIG.BLOCK_SIZE - camera.x;
+                                const screenY = y * CONFIG.BLOCK_SIZE - camera.y;
+                                
+                                // Draw block
+                                ctx.fillStyle = block.color;
+                                ctx.fillRect(screenX, screenY, CONFIG.BLOCK_SIZE, CONFIG.BLOCK_SIZE);
+                                
+                                // Draw block border
+                                ctx.strokeStyle = isDay ? '#00000020' : '#00000040';
+                                ctx.lineWidth = 1;
+                                ctx.strokeRect(screenX, screenY, CONFIG.BLOCK_SIZE, CONFIG.BLOCK_SIZE);
+                                
+                                // Add ore sparkles
+                                if (block.value) {
+                                    if (Math.sin(gameTime * 0.005 + x + y) > 0.8) {
+                                        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                                        ctx.fillRect(screenX + 15, screenY + 15, 5, 5);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Render particles
+                particles.forEach(particle => {
+                    ctx.globalAlpha = particle.life;
+                    ctx.fillStyle = particle.color;
+                    ctx.fillRect(
+                        particle.x - camera.x,
+                        particle.y - camera.y,
+                        particle.size,
+                        particle.size
+                    );
+                });
+                ctx.globalAlpha = 1;
+                
+                // Render projectiles
+                projectiles.forEach(projectile => {
+                    ctx.fillStyle = projectile.color;
+                    ctx.fillRect(
+                        projectile.x - camera.x,
+                        projectile.y - camera.y,
+                        projectile.width,
+                        projectile.height
+                    );
+                });
+                
+                // Render player
+                if (!player.isDead) {
+                    const playerScreenX = player.x - camera.x;
+                    const playerScreenY = player.y - camera.y;
+                    
+                    // Player body
+                    ctx.fillStyle = '#3498db';
+                    ctx.fillRect(playerScreenX, playerScreenY, player.width, player.height);
+                    
+                    // Player face
+                    ctx.fillStyle = '#2980b9';
+                    ctx.fillRect(playerScreenX + 5, playerScreenY + 10, 20, 20);
+                    
+                    // Player eyes
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(playerScreenX + 10, playerScreenY + 15, 5, 5);
+                    ctx.fillRect(playerScreenX + 20, playerScreenY + 15, 5, 5);
+                    
+                    // Player mouth
+                    ctx.fillStyle = '#e74c3c';
+                    ctx.fillRect(playerScreenX + 12, playerScreenY + 25, 10, 3);
+                    
+                    // Show equipped weapon
+                    if (player.tools.wood_sword || player.tools.stone_sword || player.tools.iron_sword) {
+                        ctx.fillStyle = player.tools.iron_sword ? '#b7410e' : 
+                                       player.tools.stone_sword ? '#666' : '#8B4513';
+                        const swordX = player.facingRight ? playerScreenX + player.width : playerScreenX - 30;
+                        ctx.fillRect(swordX, playerScreenY + 20, 30, 5);
+                    }
+                }
+                
+                // Render cursor
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.strokeRect(mouse.x - 10, mouse.y - 10, 20, 20);
+                ctx.setLineDash([]);
+                
+                // Draw crosshair
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                
+                ctx.beginPath();
+                ctx.moveTo(mouse.x - 15, mouse.y);
+                ctx.lineTo(mouse.x - 5, mouse.y);
+                ctx.moveTo(mouse.x + 5, mouse.y);
+                ctx.lineTo(mouse.x + 15, mouse.y);
+                ctx.moveTo(mouse.x, mouse.y - 15);
+                ctx.lineTo(mouse.x, mouse.y - 5);
+                ctx.moveTo(mouse.x, mouse.y + 5);
+                ctx.lineTo(mouse.x, mouse.y + 15);
+                ctx.stroke();
+            }
+            
+            function playSound(type) {
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    let frequency = 200;
+                    let duration = 0.1;
+                    
+                    switch(type) {
+                        case 'break':
+                            frequency = 150;
+                            duration = 0.05;
+                            break;
+                        case 'place':
+                            frequency = 300;
+                            duration = 0.05;
+                            break;
+                        case 'attack':
+                            frequency = 400;
+                            duration = 0.1;
+                            break;
+                    }
+                    
+                    oscillator.frequency.value = frequency;
+                    oscillator.type = 'sine';
+                    
+                    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + duration);
+                } catch (e) {
+                    // Audio not supported
+                }
+            }
+            
+            function togglePause() {
+                gamePaused = !gamePaused;
+                if (!document.getElementById('pauseMenu')) {
+                    const pauseMenu = document.createElement('div');
+                    pauseMenu.id = 'pauseMenu';
+                    pauseMenu.style.cssText = `
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: rgba(0, 0, 0, 0.85);
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        z-index: 200;
+                    `;
+                    pauseMenu.innerHTML = `
+                        <div style="font-size: 36px; margin-bottom: 30px; color: #4CAF50;">GAME PAUSED</div>
+                        <div class="menu-buttons">
+                            <button class="menu-btn" id="resumeBtn" style="margin: 5px;">RESUME</button>
+                            <button class="menu-btn" id="menuBtn" style="margin: 5px;">MAIN MENU</button>
+                        </div>
+                    `;
+                    document.getElementById('gameContainer').appendChild(pauseMenu);
+                    
+                    document.getElementById('resumeBtn').addEventListener('click', resumeGame);
+                    document.getElementById('menuBtn').addEventListener('click', () => {
+                        document.getElementById('pauseMenu').style.display = 'none';
+                        document.getElementById('gameContainer').style.display = 'none';
+                        document.getElementById('mainMenu').style.display = 'flex';
+                        gameStarted = false;
+                    });
+                }
+                document.getElementById('pauseMenu').style.display = gamePaused ? 'flex' : 'none';
+            }
+            
+            function resumeGame() {
+                gamePaused = false;
+                if (document.getElementById('pauseMenu')) {
+                    document.getElementById('pauseMenu').style.display = 'none';
+                }
+            }
+            
+            function respawnPlayer() {
+                player.health = player.maxHealth;
+                player.mana = player.maxMana;
+                player.isDead = false;
+                player.x = 100;
+                player.y = 100;
+                document.getElementById('deathScreen').style.display = 'none';
+            }
+            
+            function gameLoop(timestamp) {
+                if (!gameStarted || gamePaused) {
+                    requestAnimationFrame(gameLoop);
+                    return;
+                }
+                
+                // Calculate delta time
+                const deltaTime = timestamp ? timestamp - (gameLoop.lastTimestamp || 0) : 16;
+                gameLoop.lastTimestamp = timestamp;
+                
+                // Update game state
+                updatePlayer(deltaTime);
+                updateProjectiles(deltaTime);
+                updateParticles(deltaTime);
+                updateGameTime(deltaTime);
+                
+                // Render everything
+                render();
+                
+                // Request next frame
+                requestAnimationFrame(gameLoop);
+            }
+            
+            // Initialize the game
+            init();
+        });
+    </script>
 </body>
-</html>
+  </html>
